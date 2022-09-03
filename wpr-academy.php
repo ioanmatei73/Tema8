@@ -39,7 +39,9 @@ function search() {
         }
         ?>
     </select>
-
+    
+    <input type="text" id="keyword" class="input_search" name="s" placeholder="Search ..." value=""></input>
+    
     <?php return ob_get_clean();
 }
 
@@ -51,12 +53,14 @@ add_action( 'wp_ajax_nopriv_search', 'search_callback' );
 function search_callback() {
     header( "Content-Type: application/json" );
     $hobbies = $_GET[ 'hobby' ];
+    $keyw = $_GET[ 'keyw' ];
     $people = array();
 
-    $eng_hobby = 
+    $eng_search = 
         array(
             'post_type'   => 'engineer',
             'numberposts' => - 1, 
+            's' => $keyw, 
             'tax_query' => array(
                 array(
                     'taxonomy' => 'hobby',
@@ -66,15 +70,16 @@ function search_callback() {
             )
         );
 
-    $eng = new WP_Query( $eng_hobby );
+    $eng = new WP_Query( $eng_search );
 
     if ( $eng->have_posts() ) {
         while ( $eng->have_posts() ) { 
             $eng->the_post();
             $people[] = array(
-                'title' => get_the_title(),
-                'img_src' => wp_get_attachment_image_src( get_post_thumbnail_id(), 'full' ),
-                'hobby' => $hobbies
+                'title'     => get_the_title(),
+                'content'   => get_the_content(),
+                'img_src'   => wp_get_attachment_image_src( get_post_thumbnail_id(), 'full' ),
+                'hobby'     => $hobbies
             );
         }
         wp_reset_query();
@@ -85,7 +90,9 @@ function search_callback() {
 
 function search_scripts() {
     wp_enqueue_script( 'search', WPR_URL . '/assets/search.js', array('jquery'), '1.0', true );
-    wp_localize_script( 'search', 'WPR', 
+    wp_localize_script( 
+        'search', 
+        'WPR', 
         array( 
             'ajax_url'   => admin_url( 'admin-ajax.php' ),
             'ajax_nonce' => wp_create_nonce( 'search' ) 
